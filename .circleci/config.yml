@@ -1,21 +1,33 @@
-version: 2.1
-
-orbs:
-  python: circleci/python@0.2.1
-
+version: 2
 jobs:
-  build-and-test:
-    executor: python/default
+  build:
+    docker:
+      - image: circleci/python:3.7.2
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
       - run:
-          command: ./manage.py test
-          name: Test
-
-workflows:
-  main:
-    jobs:
-      - build-and-test
+          name: install python dependencies
+          command: |
+            python3 -m venv .venv
+            . .venv/bin/activate
+            pip install -r requirements.txt
+      - run:
+          name: test
+          command: |
+            . .venv/bin/activate
+            nox -s test
+            coverage run -m pytest
+            coverage report
+            coverage html
+      - store_artifacts:
+          path: htmlcov
+      - run:
+          name: lint
+          command: |
+            . .venv/bin/activate
+            nox -s lint
+      - run:
+          name: type check
+          command: |
+            . .venv/bin/activate
+            nox -s type_check
